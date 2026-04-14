@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy | Smart Energy Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="energy">
+    <div class="page-loader" id="pageLoader" aria-hidden="true">
+        <div class="page-loader__pulse"></div>
+    </div>
+
+    <div class="app-layout">
+        <div class="navbar">
+            <h2>Smart Energy Dashboard ⚡</h2>
+        </div>
+
+        <div class="container">
+            <aside class="sidebar" aria-label="Primary Navigation">
+                <a href="index.html" data-nav="dashboard">Dashboard</a>
+                <a href="energy.html" data-nav="energy">Energy</a>
+                <a href="alerts.html" data-nav="alerts">Alerts</a>
+            </aside>
+
+            <main class="content">
+                <div class="page-header page-header--with-action">
+                    <div>
+                        <p class="eyebrow">Operations</p>
+                        <h1>Energy Management</h1>
+                        <p class="page-description">Submit fresh readings, review meter activity, and export the latest dataset.</p>
+                    </div>
+                    <button id="exportCsvBtn" class="btn btn-secondary" type="button">Export Data (CSV)</button>
+                </div>
+
+                <section class="content-grid">
+                    <section class="status-card" aria-label="Transmission Status">
+                        <div class="status-card__header">
+                            <p class="section-title">Transmission Status</p>
+                            <span id="statusBadge" class="status-chip status-chip--idle">Idle</span>
+                        </div>
+                        <div id="statusAlert" class="status-alert status-alert--idle">
+                            <div>
+                                <p class="status-alert__title">Ready</p>
+                                <p id="resultMessage" class="status-alert__message">Energy submission and table actions will appear here.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="action-sections action-sections--single" aria-label="Energy Forms">
+                        <article class="card action-card" aria-label="Add Energy Data">
+                            <div class="section-heading">
+                                <p class="section-title">Add Energy Data</p>
+                                <p class="section-subtitle">Manually submit new meter readings to update the platform in real time.</p>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="field-group">
+                                    <input id="meterInput" type="text" placeholder="Meter ID (e.g. meter-1)" />
+                                </div>
+                                <div class="field-group">
+                                    <input id="consumptionInput" type="number" placeholder="Consumption (kWh)" />
+                                </div>
+                                <button onclick="sendEnergyData()" class="btn btn-primary form-action" type="button">
+                                    Submit
+                                </button>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section class="table-card" aria-label="Recent Meter Activity">
+                        <div class="table-card__header">
+                            <div>
+                                <p class="section-title">Recent Meter Activity</p>
+                                <p class="section-subtitle">Latest readings across connected meters, including anomaly and risk status.</p>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Meter ID</th>
+                                        <th scope="col">Consumption</th>
+                                        <th scope="col">Anomaly</th>
+                                        <th scope="col">Risk Level</th>
+                                        <th scope="col">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <tr class="empty-row">
+                                        <td colspan="5">
+                                            <div class="empty-state">
+                                                <p class="empty-state__title">No data yet</p>
+                                                <p class="empty-state__text">Waiting for incoming energy data from backend...</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

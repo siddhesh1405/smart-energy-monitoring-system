@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts | Smart Energy Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="alerts">
+    <div class="page-loader" id="pageLoader" aria-hidden="true">
+        <div class="page-loader__pulse"></div>
+    </div>
+
+    <div class="app-layout">
+        <div class="navbar">
+            <h2>Smart Energy Dashboard ⚡</h2>
+        </div>
+
+        <div class="container">
+            <aside class="sidebar" aria-label="Primary Navigation">
+                <a href="index.html" data-nav="dashboard">Dashboard</a>
+                <a href="energy.html" data-nav="energy">Energy</a>
+                <a href="alerts.html" data-nav="alerts">Alerts</a>
+            </aside>
+
+            <main class="content">
+                <div class="page-header">
+                    <div>
+                        <p class="eyebrow">Notifications</p>
+                        <h1>Alerts & Monitoring</h1>
+                        <p class="page-description">Subscribe to anomaly notifications and review the latest high-risk events.</p>
+                    </div>
+                </div>
+
+                <section class="content-grid">
+                    <section class="cards-grid cards-grid--alerts" aria-label="Alert Summary">
+                        <article class="metric-card">
+                            <p class="metric-label">High Risk Readings</p>
+                            <div id="alertCount" class="metric-value">0</div>
+                        </article>
+
+                        <article class="metric-card">
+                            <p class="metric-label">Latest Alert Level</p>
+                            <div id="latestAlertLevel" class="metric-value metric-value--neutral">Waiting</div>
+                        </article>
+                    </section>
+
+                    <section class="status-card" aria-label="Alerts Status">
+                        <div class="status-card__header">
+                            <p class="section-title">Alert Status</p>
+                            <span id="statusBadge" class="status-chip status-chip--idle">Idle</span>
+                        </div>
+                        <div id="statusAlert" class="status-alert status-alert--idle">
+                            <div>
+                                <p class="status-alert__title">Ready</p>
+                                <p id="resultMessage" class="status-alert__message">Alert subscription updates and anomaly events will appear here.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="action-sections action-sections--single" aria-label="Email Alert Controls">
+                        <article class="card action-card action-card--highlight" aria-label="Email Alerts">
+                            <div class="section-heading">
+                                <p class="section-title">Email Alerts</p>
+                                <p class="section-subtitle">Subscribe to receive anomaly and high-risk energy notifications in real time.</p>
+                            </div>
+
+                            <div class="form-row form-row--balanced">
+                                <label class="field-group field-group--icon" for="emailInput">
+                                    <span class="field-icon" aria-hidden="true">📧</span>
+                                    <input id="emailInput" type="email" placeholder="Enter email for alerts" />
+                                </label>
+                                <button onclick="subscribeEmail()" class="btn btn-primary btn-accent form-action" type="button">
+                                    Subscribe Alerts
+                                </button>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section class="table-card" aria-label="Recent Anomalies">
+                        <div class="table-card__header">
+                            <div>
+                                <p class="section-title">Recent Anomalies</p>
+                                <p class="section-subtitle">Most recent high-risk or anomalous readings needing attention.</p>
+                            </div>
+                        </div>
+
+                        <div id="alertFeed" class="alert-feed">
+                            <div class="empty-state empty-state--block">
+                                <p class="empty-state__title">No alerts yet</p>
+                                <p class="empty-state__text">Anomalous readings will appear here automatically.</p>
+                            </div>
+                        </div>
+                    </section>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

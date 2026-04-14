@@ -3,151 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Energy Monitoring Dashboard</title>
+    <title>Dashboard | Smart Energy Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-page="dashboard">
     <div class="page-loader" id="pageLoader" aria-hidden="true">
         <div class="page-loader__pulse"></div>
     </div>
 
-    <div class="app-shell">
-        <header class="topbar">
-            <h1>Energy Dashboard ⚡</h1>
+    <div class="app-layout">
+        <div class="navbar">
+            <h2>Smart Energy Dashboard ⚡</h2>
+        </div>
 
-            <div class="topbar-actions">
-                <button id="exportCsvBtn" class="btn btn-secondary" type="button">Export Data (CSV)</button>
-            </div>
-        </header>
+        <div class="container">
+            <aside class="sidebar" aria-label="Primary Navigation">
+                <a href="index.html" data-nav="dashboard">Dashboard</a>
+                <a href="energy.html" data-nav="energy">Energy</a>
+                <a href="alerts.html" data-nav="alerts">Alerts</a>
+            </aside>
 
-        <main class="content-grid">
-            <section class="cards-grid" aria-label="Dashboard Stats">
-                <article class="metric-card">
-                    <p class="metric-label">Total Energy Readings</p>
-                    <div id="totalRequests" class="metric-value">0</div>
-                </article>
-
-                <article class="metric-card">
-                    <p class="metric-label">Last Consumption</p>
-                    <div id="lastConsumption" class="metric-value">--</div>
-                </article>
-
-                <article class="metric-card">
-                    <div class="metric-card__header">
-                        <p class="metric-label">Risk Level</p>
-                        <span id="riskIndicator" class="metric-indicator metric-indicator--neutral"></span>
-                    </div>
-                    <div id="riskLevel" class="metric-value metric-value--neutral">Waiting</div>
-                </article>
-            </section>
-
-            <section class="status-card" aria-label="Transmission Status">
-                <div class="status-card__header">
-                    <p class="section-title">Transmission Status</p>
-                    <span id="statusBadge" class="status-chip status-chip--idle">Idle</span>
-                </div>
-                <div id="statusAlert" class="status-alert status-alert--idle">
+            <main class="content">
+                <div class="page-header">
                     <div>
-                        <p class="status-alert__title">Ready</p>
-                        <p id="resultMessage" class="status-alert__message">Listening for real-time energy data updates.</p>
+                        <p class="eyebrow">Overview</p>
+                        <h1>Dashboard Overview</h1>
+                        <p class="page-description">Track live energy readings, risk trends, and system activity from one place.</p>
                     </div>
                 </div>
-            </section>
 
-            <section class="action-sections" aria-label="Energy Input And Alert Controls">
-                <article class="card action-card" aria-label="Add Energy Data">
-                    <div class="section-heading">
-                        <p class="section-title">Add Energy Data</p>
-                        <p class="section-subtitle">Manually submit new meter readings to update analytics and anomaly detection.</p>
-                    </div>
+                <section class="content-grid">
+                    <section class="cards-grid" aria-label="Dashboard Stats">
+                        <article class="metric-card">
+                            <p class="metric-label">Total Energy Readings</p>
+                            <div id="totalRequests" class="metric-value">0</div>
+                        </article>
 
-                    <div class="form-row">
-                        <div class="field-group">
-                            <input id="meterInput" type="text" placeholder="Meter ID (e.g. meter-1)" />
+                        <article class="metric-card">
+                            <p class="metric-label">Last Consumption</p>
+                            <div id="lastConsumption" class="metric-value">--</div>
+                        </article>
+
+                        <article class="metric-card">
+                            <div class="metric-card__header">
+                                <p class="metric-label">Risk Level</p>
+                                <span id="riskIndicator" class="metric-indicator metric-indicator--neutral"></span>
+                            </div>
+                            <div id="riskLevel" class="metric-value metric-value--neutral">Waiting</div>
+                        </article>
+                    </section>
+
+                    <section class="status-card" aria-label="Transmission Status">
+                        <div class="status-card__header">
+                            <p class="section-title">Transmission Status</p>
+                            <span id="statusBadge" class="status-chip status-chip--idle">Idle</span>
                         </div>
-                        <div class="field-group">
-                            <input id="consumptionInput" type="number" placeholder="Consumption (kWh)" />
+                        <div id="statusAlert" class="status-alert status-alert--idle">
+                            <div>
+                                <p class="status-alert__title">Ready</p>
+                                <p id="resultMessage" class="status-alert__message">Listening for real-time energy data updates.</p>
+                            </div>
                         </div>
-                        <button onclick="sendEnergyData()" class="btn btn-primary form-action" type="button">
-                            Submit
-                        </button>
-                    </div>
-                </article>
+                    </section>
 
-                <article class="card action-card action-card--highlight" aria-label="Email Alerts">
-                    <div class="section-heading">
-                        <p class="section-title">Email Alerts</p>
-                        <p class="section-subtitle">Subscribe to receive anomaly and high-risk energy notifications in real time.</p>
-                    </div>
-
-                    <div class="form-row form-row--balanced">
-                        <label class="field-group field-group--icon" for="emailInput">
-                            <span class="field-icon" aria-hidden="true">📧</span>
-                            <input id="emailInput" type="email" placeholder="Enter email for alerts" />
-                        </label>
-                        <button onclick="subscribeEmail()" class="btn btn-primary btn-accent form-action" type="button">
-                            Subscribe Alerts
-                        </button>
-                    </div>
-                </article>
-            </section>
-
-            <section class="analytics-card" aria-label="Analytics">
-                <div class="analytics-header">
-                    <p class="section-title">Analytics</p>
-                    <p class="section-subtitle">Consumption trends, moving average, and risk breakdown.</p>
-                </div>
-
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <p class="chart-title">Energy Consumption</p>
-                        <div class="chart-wrap">
-                            <canvas id="energyLineChart"></canvas>
+                    <section class="analytics-card" aria-label="Analytics">
+                        <div class="analytics-header">
+                            <p class="section-title">Analytics</p>
+                            <p class="section-subtitle">Consumption trends, moving average, and risk breakdown.</p>
                         </div>
-                    </div>
 
-                    <div class="chart-card">
-                        <p class="chart-title">Risk Distribution</p>
-                        <div class="chart-wrap">
-                            <canvas id="riskBarChart"></canvas>
+                        <div class="charts-grid">
+                            <div class="chart-card">
+                                <p class="chart-title">Energy Consumption</p>
+                                <div class="chart-wrap">
+                                    <canvas id="energyLineChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="chart-card">
+                                <p class="chart-title">Risk Distribution</p>
+                                <div class="chart-wrap">
+                                    <canvas id="riskBarChart"></canvas>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="table-card" aria-label="Recent Meter Activity">
-                <div class="table-card__header">
-                    <p class="section-title">Recent Meter Activity</p>
-                </div>
-
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th scope="col">Meter ID</th>
-                                <th scope="col">Consumption</th>
-                                <th scope="col">Anomaly</th>
-                                <th scope="col">Risk Level</th>
-                                <th scope="col">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody">
-                            <tr class="empty-row">
-                                <td colspan="5">
-                                    <div class="empty-state">
-                                        <p class="empty-state__title">No data yet</p>
-                                        <p class="empty-state__text">Waiting for incoming energy data from backend...</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
+                    </section>
+                </section>
+            </main>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

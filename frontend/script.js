@@ -1,5 +1,6 @@
 const GET_API_URL = "https://dpn4u69wn0.execute-api.us-east-1.amazonaws.com/energy-readings";
 const POST_API_URL = "https://dpn4u69wn0.execute-api.us-east-1.amazonaws.com/process-energy";
+const SUBSCRIBE_API_URL = "https://dpn4u69wn0.execute-api.us-east-1.amazonaws.com/subscribe";
 
 const totalRequestsEl = document.getElementById("totalRequests");
 const lastConsumptionEl = document.getElementById("lastConsumption");
@@ -9,30 +10,33 @@ const statusBadgeEl = document.getElementById("statusBadge");
 const statusAlertEl = document.getElementById("statusAlert");
 const riskIndicatorEl = document.getElementById("riskIndicator");
 const tableBodyEl = document.getElementById("tableBody");
-
 const exportCsvBtn = document.getElementById("exportCsvBtn");
-const sendSpinnerEl = document.getElementById("sendSpinner");
 const pageLoaderEl = document.getElementById("pageLoader");
 const energyLineChartEl = document.getElementById("energyLineChart");
 const riskBarChartEl = document.getElementById("riskBarChart");
+const alertCountEl = document.getElementById("alertCount");
+const latestAlertLevelEl = document.getElementById("latestAlertLevel");
+const alertFeedEl = document.getElementById("alertFeed");
 
 let currentRecords = [];
 let energyLineChart = null;
 let riskBarChart = null;
 
 hydrateTokenFromUrl();
+highlightActiveNavigation();
 attachEventListeners();
 bootPage();
-initializeDashboard();
+initializePage();
 
 function bootPage() {
     window.addEventListener("load", () => {
+        if (!pageLoaderEl) return;
+
         setTimeout(() => {
             pageLoaderEl.classList.add("is-hidden");
         }, 320);
     });
 
-    // Auto refresh every 5 seconds
     setInterval(() => {
         loadDashboardData();
     }, 5000);
@@ -49,12 +53,26 @@ function hydrateTokenFromUrl() {
     }
 }
 
-function attachEventListeners() {
-    exportCsvBtn.addEventListener("click", exportDataAsCsv);
+function highlightActiveNavigation() {
+    const currentPage = document.body.dataset.page;
+    const navLinks = document.querySelectorAll(".sidebar a[data-nav]");
+
+    navLinks.forEach((link) => {
+        link.classList.toggle("active", link.dataset.nav === currentPage);
+    });
 }
 
-async function initializeDashboard() {
-    renderEmptyState("Loading data...");
+function attachEventListeners() {
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener("click", exportDataAsCsv);
+    }
+}
+
+async function initializePage() {
+    if (tableBodyEl) {
+        renderEmptyState("Loading data...");
+    }
+
     setStatus("loading", "Loading", "Loading data...");
     await loadDashboardData();
 }
@@ -63,11 +81,11 @@ function getAuthToken() {
     return localStorage.getItem("token");
 }
 
-function generateConsumptionValue() {
-    return Math.floor(Math.random() * 900) + 100;
-}
-
 function setStatus(state, title, message) {
+    if (!statusBadgeEl || !statusAlertEl || !resultMessageEl) {
+        return;
+    }
+
     const normalizedState = ["idle", "loading", "success", "error"].includes(state) ? state : "idle";
 
     statusBadgeEl.className = `status-chip status-chip--${normalizedState}`;
@@ -76,11 +94,18 @@ function setStatus(state, title, message) {
     statusAlertEl.className = `status-alert status-alert--${normalizedState}`;
 
     const titleEl = statusAlertEl.querySelector(".status-alert__title");
-    titleEl.textContent = title;
+    if (titleEl) {
+        titleEl.textContent = title;
+    }
+
     resultMessageEl.textContent = message;
 }
 
 function updateRiskDisplay(riskLevel) {
+    if (!riskLevelEl || !riskIndicatorEl) {
+        return;
+    }
+
     const normalizedRisk = riskLevel === "HIGH" ? "HIGH" : riskLevel === "NORMAL" ? "NORMAL" : "Waiting";
     const valueClass = normalizedRisk === "HIGH"
         ? "metric-value metric-value--high"
@@ -99,15 +124,22 @@ function updateRiskDisplay(riskLevel) {
 }
 
 function updateSummaryCards(records, latestRecord) {
-    totalRequestsEl.textContent = String(records.length);
+    if (totalRequestsEl) {
+        totalRequestsEl.textContent = String(records.length);
+    }
 
     if (!latestRecord) {
-        lastConsumptionEl.textContent = "--";
+        if (lastConsumptionEl) {
+            lastConsumptionEl.textContent = "--";
+        }
         updateRiskDisplay(null);
         return;
     }
 
-    lastConsumptionEl.textContent = `${latestRecord.consumptionValue} kWh`;
+    if (lastConsumptionEl) {
+        lastConsumptionEl.textContent = `${latestRecord.consumptionValue} kWh`;
+    }
+
     updateRiskDisplay(latestRecord.riskLevel);
 }
 
@@ -133,7 +165,7 @@ function getRiskLevel(record, consumptionValue) {
     return "NORMAL";
 }
 
-function getAnomalyFlag(record, riskLevel, consumptionValue) {
+function getAnomalyFlag(record, riskLevel) {
     const rawAnomaly = record?.anomalyDetected ?? record?.anomaly ?? record?.isAnomaly ?? record?.is_anomaly;
 
     if (typeof rawAnomaly === "boolean") {
@@ -159,7 +191,7 @@ function normalizeRecord(record) {
     return {
         meterId: record?.meterId ?? record?.meter_id ?? "meter-1",
         consumptionValue,
-        anomalyDetected: getAnomalyFlag(record, riskLevel, consumptionValue),
+        anomalyDetected: getAnomalyFlag(record, riskLevel),
         riskLevel,
         timestamp: getTimestamp(record),
         rawTimestamp: record?.timestamp ?? record?.createdAt ?? record?.created_at ?? record?.time ?? record?.date ?? ""
@@ -193,6 +225,10 @@ function sortRecordsLatestFirst(records) {
 }
 
 function renderTable(records) {
+    if (!tableBodyEl) {
+        return;
+    }
+
     if (!records.length) {
         renderEmptyState("No data available. Start sending energy readings.");
         return;
@@ -211,12 +247,10 @@ function renderTable(records) {
                 </span>
             </td>
             <td>
-                <button class="btn btn-primary" 
-                    onclick="updateRecord('${record.meterId}', '${record.rawTimestamp}', '${record.consumptionValue}')">
+                <button class="btn btn-primary" onclick="updateRecord('${record.meterId}', '${record.rawTimestamp}', '${record.consumptionValue}')">
                     Update
                 </button>
-                <button class="btn btn-danger" 
-                    onclick="deleteRecord('${record.meterId}', '${record.rawTimestamp}')">
+                <button class="btn btn-danger" onclick="deleteRecord('${record.meterId}', '${record.rawTimestamp}')">
                     Delete
                 </button>
             </td>
@@ -225,9 +259,13 @@ function renderTable(records) {
 }
 
 function renderEmptyState(message) {
+    if (!tableBodyEl) {
+        return;
+    }
+
     tableBodyEl.innerHTML = `
         <tr class="empty-row">
-            <td colspan="4">
+            <td colspan="5">
                 <div class="empty-state">
                     <p class="empty-state__title">${message}</p>
                     <p class="empty-state__text">Send energy data to populate the table.</p>
@@ -235,10 +273,6 @@ function renderEmptyState(message) {
             </td>
         </tr>
     `;
-}
-
-function setLoadingState(isLoading) {
-    sendSpinnerEl.classList.toggle("hidden", !isLoading);
 }
 
 async function fetchJson(url, options = {}) {
@@ -262,7 +296,7 @@ async function fetchJson(url, options = {}) {
     }
 
     if (!response.ok) {
-        const errorMessage = data?.message || `Request failed with status ${response.status}`;
+        const errorMessage = data?.message || data?.error || `Request failed with status ${response.status}`;
         throw new Error(errorMessage);
     }
 
@@ -336,18 +370,16 @@ function destroyCharts() {
 function renderCharts(records) {
     destroyCharts();
 
-    if (!window.Chart || !records.length) {
+    if (!window.Chart || !energyLineChartEl || !riskBarChartEl || !records.length) {
         return;
     }
 
-    const chartRecords = records.slice(0, 20).slice().reverse();
-    const chronologicalRecords = chartRecords;
+    const chronologicalRecords = records.slice(0, 20).slice().reverse();
     const timestamps = chronologicalRecords.map(formatTimestampLabel);
     const consumptionValues = chronologicalRecords.map((record) => record.consumptionValue);
     const riskLevels = chronologicalRecords.map((record) => record.riskLevel);
     const movingAverage = calculateMovingAverage(consumptionValues, 5);
     const pointColors = riskLevels.map((riskLevel) => riskLevel === "HIGH" ? "#dc2626" : "#16a34a");
-
     const highRiskCount = riskLevels.filter((riskLevel) => riskLevel === "HIGH").length;
     const normalRiskCount = riskLevels.filter((riskLevel) => riskLevel !== "HIGH").length;
 
@@ -443,6 +475,54 @@ function createChartOptions(axisTitle) {
     };
 }
 
+function renderAlerts(records) {
+    if (!alertCountEl && !latestAlertLevelEl && !alertFeedEl) {
+        return;
+    }
+
+    const anomalousRecords = records.filter((record) => record.anomalyDetected || record.riskLevel === "HIGH");
+    const latestAlert = anomalousRecords[0] || null;
+
+    if (alertCountEl) {
+        alertCountEl.textContent = String(anomalousRecords.length);
+    }
+
+    if (latestAlertLevelEl) {
+        const latestLevel = latestAlert?.riskLevel || "Waiting";
+        latestAlertLevelEl.textContent = latestLevel;
+        latestAlertLevelEl.className = latestLevel === "HIGH"
+            ? "metric-value metric-value--high"
+            : "metric-value metric-value--neutral";
+    }
+
+    if (!alertFeedEl) {
+        return;
+    }
+
+    if (!anomalousRecords.length) {
+        alertFeedEl.innerHTML = `
+            <div class="empty-state empty-state--block">
+                <p class="empty-state__title">No alerts yet</p>
+                <p class="empty-state__text">Anomalous readings will appear here automatically.</p>
+            </div>
+        `;
+        return;
+    }
+
+    alertFeedEl.innerHTML = anomalousRecords.slice(0, 6).map((record) => `
+        <article class="alert-item">
+            <div>
+                <p class="alert-item__title">${record.meterId} reported ${record.consumptionValue} kWh</p>
+                <p class="alert-item__description">Anomaly detected: ${record.anomalyDetected ? "Yes" : "No"}</p>
+                <p class="alert-item__meta">${record.rawTimestamp || "Timestamp unavailable"}</p>
+            </div>
+            <span class="risk-pill ${record.riskLevel === "HIGH" ? "high" : "normal"} alert-item__badge">
+                ${record.riskLevel}
+            </span>
+        </article>
+    `).join("");
+}
+
 async function loadDashboardData() {
     try {
         setStatus("loading", "Loading", "Loading data...");
@@ -455,6 +535,7 @@ async function loadDashboardData() {
         updateSummaryCards(records, latestRecord);
         renderTable(records);
         renderCharts(records);
+        renderAlerts(records);
 
         if (!records.length) {
             renderEmptyState("No data available. Start sending energy readings.");
@@ -468,10 +549,10 @@ async function loadDashboardData() {
         updateSummaryCards([], null);
         renderEmptyState("No data available. Start sending energy readings.");
         renderCharts([]);
-        setStatus("error", "Load Failed", "Error loading data");
+        renderAlerts([]);
+        setStatus("error", "Load Failed", error.message || "Error loading data");
     }
 }
-
 
 function exportDataAsCsv() {
     if (!currentRecords.length) {
@@ -515,28 +596,20 @@ async function deleteRecord(meterId, timestamp) {
     if (!confirm("Are you sure you want to delete this record?")) return;
 
     try {
-        const token = getAuthToken();
-
-        await fetch("https://dpn4u69wn0.execute-api.us-east-1.amazonaws.com/energy-readings", {
+        await fetchJson(GET_API_URL, {
             method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {})
-            },
             body: JSON.stringify({
-                meterId: meterId,
-                timestamp: timestamp
+                meterId,
+                timestamp
             })
         });
 
         alert("Deleted successfully");
-
-        // Refresh dashboard after delete
         loadDashboardData();
-
     } catch (error) {
         console.error("Delete failed:", error);
         alert("Delete failed");
+        setStatus("error", "Delete Failed", "Unable to delete the reading.");
     }
 }
 
@@ -546,31 +619,32 @@ async function updateRecord(meterId, timestamp, currentValue) {
     if (!newValue) return;
 
     try {
-        await fetch("https://dpn4u69wn0.execute-api.us-east-1.amazonaws.com/energy-readings", {
+        await fetchJson(GET_API_URL, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json"
-            },
             body: JSON.stringify({
-                meterId: meterId,
-                timestamp: timestamp,
+                meterId,
+                timestamp,
                 consumptionValue: Number(newValue)
             })
         });
 
         alert("Updated successfully");
         loadDashboardData();
-
     } catch (error) {
         console.error("Update failed:", error);
         alert("Update failed");
+        setStatus("error", "Update Failed", "Unable to update the reading.");
     }
 }
 
-// POST function to send new energy data from the form
 async function sendEnergyData() {
-    const meterId = document.getElementById("meterInput").value.trim();
-    const consumption = document.getElementById("consumptionInput").value;
+    const meterInputEl = document.getElementById("meterInput");
+    const consumptionInputEl = document.getElementById("consumptionInput");
+
+    if (!meterInputEl || !consumptionInputEl) return;
+
+    const meterId = meterInputEl.value.trim();
+    const consumption = consumptionInputEl.value;
 
     if (!meterId || !consumption) {
         alert("Please fill all fields");
@@ -580,34 +654,19 @@ async function sendEnergyData() {
     try {
         setStatus("loading", "Sending...", "Submitting data");
 
-        const response = await fetch(POST_API_URL, {
+        await fetchJson(POST_API_URL, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
             body: JSON.stringify({
-                meterId: meterId,
+                meterId,
                 consumptionValue: Number(consumption)
             })
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || "Failed to send data");
-        }
-
         alert("Data added successfully!");
-
-        // Clear inputs
-        document.getElementById("meterInput").value = "";
-        document.getElementById("consumptionInput").value = "";
-
-        // Refresh dashboard
+        meterInputEl.value = "";
+        consumptionInputEl.value = "";
         loadDashboardData();
-
         setStatus("success", "Success", "Energy data submitted");
-
     } catch (error) {
         console.error(error);
         alert("Error sending data");
@@ -615,9 +674,12 @@ async function sendEnergyData() {
     }
 }
 
-// Function to subscribe an email for alerts
 async function subscribeEmail() {
-    const email = document.getElementById("emailInput").value.trim();
+    const emailInputEl = document.getElementById("emailInput");
+
+    if (!emailInputEl) return;
+
+    const email = emailInputEl.value.trim();
 
     if (!email) {
         alert("Please enter a valid email");
@@ -627,26 +689,14 @@ async function subscribeEmail() {
     try {
         setStatus("loading", "Subscribing...", "Registering email for alerts");
 
-        const response = await fetch("https://dpn4u69wn0.execute-api.us-east-1.amazonaws.com/subscribe", {
+        await fetchJson(SUBSCRIBE_API_URL, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ email: email })
+            body: JSON.stringify({ email })
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || "Subscription failed");
-        }
-
         alert("Check your email to confirm subscription!");
-
-        document.getElementById("emailInput").value = "";
-
+        emailInputEl.value = "";
         setStatus("success", "Subscribed", "Email registered for alerts");
-
     } catch (error) {
         console.error(error);
         alert("Subscription failed");
