@@ -1,4 +1,4 @@
-name: Deploy Smart Energy System
+name: CI/CD Pipeline
 
 on:
   push:
@@ -11,74 +11,52 @@ jobs:
 
     steps:
 
-    - name: Checkout Code
+    - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install zip
-      run: sudo apt-get install zip
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-    - name: Package Lambdas
+    # 🔥 Install library from TestPyPI (BUILD TIME)
+    - name: Install library
       run: |
-        for dir in processEnergyData getEnergyReadings updateEnergyReading deleteEnergyReading subscribeEmail
-        do
-          cd backend/$dir
-          cp -r ../common/energy_anomaly_engine .
-          zip -r function.zip .
-          cd -
-        done
+        pip install --index-url https://test.pypi.org/simple/ energy-anomaly-engine
 
-    - name: Deploy processEnergyData
-      uses: appleboy/lambda-action@master
-      with:
-        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws_secret_access_key: ${{ secrets.AWS_SECRET_KEY }}
-        region: us-east-1
-        function_name: processEnergyData
-        zip_file: backend/processEnergyData/function.zip
+    # 🔥 Package Lambda with pip (IMPORTANT)
+    - name: Package Lambda
+      run: |
+        mkdir package
+        pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple --target ./package energy-anomaly-engine
+        cp -r backend/processEnergyData/* package/
+        cd package
+        zip -r function.zip .
+        cd ..
 
-    - name: Deploy getEnergyReadings
-      uses: appleboy/lambda-action@master
-      with:
-        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws_secret_access_key: ${{ secrets.AWS_SECRET_KEY }}
-        region: us-east-1
-        function_name: getEnergyReadings
-        zip_file: backend/getEnergyReadings/function.zip
+    - name: Install AWS CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y awscli
 
-    - name: Deploy updateEnergyReading
-      uses: appleboy/lambda-action@master
-      with:
-        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws_secret_access_key: ${{ secrets.AWS_SECRET_KEY }}
-        region: us-east-1
-        function_name: updateEnergyReading
-        zip_file: backend/updateEnergyReading/function.zip
+    - name: Configure AWS Credentials
+      run: |
+        echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY }}" >> $GITHUB_ENV
+        echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_KEY }}" >> $GITHUB_ENV
+        echo "AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}" >> $GITHUB_ENV
+        echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
 
-    - name: Deploy deleteEnergyReading
-      uses: appleboy/lambda-action@master
-      with:
-        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws_secret_access_key: ${{ secrets.AWS_SECRET_KEY }}
-        region: us-east-1
-        function_name: deleteEnergyReading
-        zip_file: backend/deleteEnergyReading/function.zip
+    - name: Verify AWS Identity
+      run: aws sts get-caller-identity
 
-    - name: Deploy subscribeEmail
-      uses: appleboy/lambda-action@master
-      with:
-        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws_secret_access_key: ${{ secrets.AWS_SECRET_KEY }}
-        region: us-east-1
-        function_name: subscribeEmail
-        zip_file: backend/subscribeEmail/function.zip
-    
+    # 🔥 Deploy Lambda
+    - name: Deploy Lambda
+      run: |
+        aws lambda update-function-code \
+          --function-name processEnergyData \
+          --zip-file fileb://package/function.zip
+
+    # 🔥 Deploy Frontend to S3
     - name: Deploy Frontend
-      uses: jakejarvis/s3-sync-action@master
-      with:
-        args: --delete
-      env:
-        AWS_S3_BUCKET: energy-dashboard-siddhesh
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
-        AWS_REGION: us-east-1
-        SOURCE_DIR: frontend
+      run: |
+        aws s3 sync frontend s3://energy-dashboard-siddhesh --delete

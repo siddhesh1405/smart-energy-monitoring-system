@@ -1,6 +1,4 @@
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
+
 import boto3
 import json
 from decimal import Decimal
